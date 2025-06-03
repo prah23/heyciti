@@ -121,6 +121,10 @@ class UserScoresView(APIView):
             {
                 'soeid': user.soeid,
                 'score': user.score or 0,
+                'full_name': user.full_name,
+                'avatar': user.avatar,
+                'location': user.location,
+                'grade': user.grade
             }
             for user in users
         ]

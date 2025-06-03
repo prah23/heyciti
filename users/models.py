@@ -13,7 +13,20 @@ class User(models.Model):
             )
         ]
     )
+    full_name = models.CharField(max_length=255, null=True, blank=True) 
     avatar = models.TextField(null=True, blank=True)
+    location = models.TextField(null=True, blank=True)
+    grade = models.CharField(
+        max_length=3,
+        validators=[
+            RegexValidator(
+                regex=r'^[A-Z]\d{2}$',
+                message='Grade must be in the format of 1 letter followed by 2 digits (e.g., C05, C10).'
+            )
+        ],
+        null=True,
+        blank=True
+    )
 
     def __str__(self):
         return self.soeid

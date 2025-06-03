@@ -67,7 +67,33 @@ class GetUserDetailsView(APIView):
         # Prepare the response data
         user_data = {
             'soeid': user.soeid,
-            'avatar': user.avatar
+            'full_name': user.full_name,
+            'avatar': user.avatar,
+            'location': user.location,
+            'grade': user.grade
         }
 
         return Response(user_data, status=status.HTTP_200_OK)
+
+class UpdateUserDetailsView(APIView):
+    """
+    API endpoint to update user details dynamically by SOEID.
+    """
+
+    def patch(self, request, soeid):
+        # Get the user by SOEID
+        try:
+            user = User.objects.get(soeid=soeid)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Update user fields dynamically
+        allowed_fields = ['full_name', 'avatar', 'location', 'grade']
+        for field, value in request.data.items():
+            if field in allowed_fields:
+                setattr(user, field, value)
+
+        # Save the updated user
+        user.save()
+
+        return Response({'message': f'User with SOEID {soeid} updated successfully.'}, status=status.HTTP_200_OK)
