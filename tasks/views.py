@@ -1,27 +1,46 @@
 from django.db.models import Sum, F, Min, IntegerField
 from django.shortcuts import render
+from django.utils.timezone import now
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Task, UserTask
+from .models import Task, UserTask, Module
 from users.models import User
 from .serializers import TaskSerializer, TaskViewSerializer, UserTaskSerializer
 
 
 class TasksListView(APIView):
     """
-    View to list all tasks in the database.
+    View to list all modules with their tasks in the specified structure.
     """
 
     def get(self, request):
-        tasks = Task.objects.all()
-        serializer = TaskViewSerializer(tasks, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        modules = Module.objects.prefetch_related('tasks')
+
+        response_data = []
+        for module in modules:
+            task_zone = [
+                {
+                    'name': task.name,
+                    'x': task.x,
+                    'y': task.y,
+                    'contentUrl': task.contentUrl,
+                    'content_type': task.content_type,
+                }
+                for task in module.tasks.all()
+            ]
+            response_data.append({
+                'module_name': module.name,
+                'map': module.map if module.map else None,
+                'taskZone': task_zone,
+            })
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
 
 class UserTasksView(APIView):
     """
-    View to list and update tasks for a specific user.
+    View to list and update tasks for a specific user in the same structure as TasksListView.
     """
 
     def get(self, request, soeid):
@@ -31,10 +50,32 @@ class UserTasksView(APIView):
         except User.DoesNotExist:
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Get all tasks for the user
-        user_tasks = UserTask.objects.filter(user=user)
-        serializer = UserTaskSerializer(user_tasks, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        # Get all UserTask objects for the user
+        user_tasks = UserTask.objects.filter(user=user).select_related('task__module')
+
+        # Group tasks by module
+        modules = {}
+        for user_task in user_tasks:
+            module = user_task.task.module
+            if module not in modules:
+                modules[module] = {
+                    'module_name': module.name,
+                    'map': module.map if module.map else None,
+                    'taskZone': []
+                }
+            modules[module]['taskZone'].append({
+                'name': user_task.task.name,
+                'x': user_task.task.x,
+                'y': user_task.task.y,
+                'completed': user_task.completed,
+                'contentUrl': user_task.task.contentUrl,
+                'content_type': user_task.task.content_type,
+            })
+
+        # Convert the grouped modules into a list
+        response_data = list(modules.values())
+
+        return Response(response_data, status=status.HTTP_200_OK)
 
     def patch(self, request, soeid):
         # Get the user by SOEID

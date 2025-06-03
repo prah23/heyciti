@@ -1,11 +1,35 @@
 from django.db import models
 from users.models import User
 
+
+class Module(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    map = models.CharField(max_length=2048, null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+
 class Task(models.Model):
+    CONTENT_TYPE_CHOICES = [
+        ('string', 'String'),
+        ('ppt', 'PPT'),
+        ('pdf', 'PDF'),
+        ('url', 'URL'),
+        ('mp4', 'MP4'),
+        ('mp3', 'MP3'),
+    ]
+
     name = models.CharField(max_length=255, unique=True)
     x = models.FloatField()
     y = models.FloatField()
-    contentUrl = models.URLField(max_length=2048)
+    contentUrl = models.TextField(null=True, blank=True)  # Store text instead of URLs
+    content_type = models.CharField(
+        max_length=10,
+        choices=CONTENT_TYPE_CHOICES,
+        default='url'  # Default value is 'url'
+    )
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name='tasks', null=True, blank=True)
 
     def __str__(self):
         return self.name

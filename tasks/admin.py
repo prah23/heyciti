@@ -1,11 +1,16 @@
 from django.contrib import admin
-from .models import Task, UserTask
+from .models import Module, Task, UserTask
 from users.models import User
+
+@admin.register(Module)
+class ModuleAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
 
 @admin.register(Task)
 class TaskAdmin(admin.ModelAdmin):
-    list_display = ('name', 'x', 'y', 'contentUrl')
-    search_fields = ('name', 'contentUrl')
+    list_display = ('name', 'module', 'x', 'y', 'contentUrl')
+    search_fields = ('name', 'module__name')
 
     def save_model(self, request, obj, form, change):
         """
